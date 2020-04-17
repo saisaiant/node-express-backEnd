@@ -1,5 +1,7 @@
 const uuid = require("uuid/v4");
 const HttpError = require("../models/http-error");
+const { validationResult } = require("express-validator");
+const User = require("../models/user");
 
 const DUMMY_USERS = [
   {
@@ -14,20 +16,49 @@ const getUsers = (req, res, next) => {
   res.json({ users: DUMMY_USERS });
 };
 
-const signup = (req, res, next) => {
-  const { name, email, password } = req.body;
-  const hasUser = DUMMY_USERS.find((u) => u.email === email);
-  if (hasUser) {
-    throw new HttpError("Could not create user, email already exits", 422);
+const signup = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(
+      new HttpError("Invalid inputs passed, please check your data", 422)
+    );
   }
-  const createUser = {
-    id: uuid(),
+
+  const { name, email, password, places } = req.body;
+
+  let existingUser;
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (error) {
+    const err = new HttpError("Sign Up Failed Please try again later", 500);
+    return next(err);
+  }
+
+  if (existingUser) {
+    const errs = new HttpError("User exits already, Please login instead", 422);
+    return next(errs);
+  }
+
+  // const hasUser = DUMMY_USERS.find((u) => u.email === email);
+  // if (hasUser) {
+  //   throw new HttpError("Could not create user, email already exits", 422);
+  // }
+  const createdUser = new User({
     name,
     email,
+    image:
+      "https://webheads-g9n1f8q3p5.netdna-ssl.com/wp-content/uploads/2018/04/newyor-api.jpg",
     password,
-  };
-  DUMMY_USERS.push(createUser);
-  res.status(201).json({ user: createUser });
+    places,
+  });
+  // DUMMY_USERS.push(createUser);
+  try {
+    await createdUser.save();
+  } catch (error) {
+    let errs = new HttpError("Sign up failed, please try again", 500);
+    return next(errs);
+  }
+  res.status(201).json({ user: createUser.toObject({ getters: true }) });
 };
 
 const login = (req, res, next) => {
