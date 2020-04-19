@@ -73,7 +73,7 @@ const login = async (req, res, next) => {
     return next(error);
   }
 
-  res.json({ message: "Logged in" });
+  res.json({ message: "Logged in" , user: existingUser.toObject({getters:true})});
   // const idendifiedUser = DUMMY_USERS.find((u) => u.email === email);
   // if (!idendifiedUser || idendifiedUser.password !== password) {
   //   throw new HttpError(

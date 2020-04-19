@@ -102,7 +102,7 @@ const createPlace = async (req, res, next) => {
     await sess.commitTransaction();
     //await createdPlace.save();
   } catch (error) {
-    let errs = new HttpError("Creting place failed, please try again", 500);
+    let errs = new HttpError("Creating place failed, please try again", 500);
     return next(errs);
   }
   // DUMMY_PLACES.push(createdPlace);
