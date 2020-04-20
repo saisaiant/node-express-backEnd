@@ -1,4 +1,5 @@
 const HttpError = require("../models/http-error");
+const fs = require("fs");
 const mongoose = require("mongoose");
 const uuid = require("uuid/v4");
 const { validationResult } = require("express-validator");
@@ -75,8 +76,7 @@ const createPlace = async (req, res, next) => {
     description,
     address,
     location: coordinates,
-    image:
-      "https://webheads-g9n1f8q3p5.netdna-ssl.com/wp-content/uploads/2018/04/newyor-api.jpg",
+    image: req.file.path,
     creator,
   });
 
@@ -131,6 +131,10 @@ const updatePlace = async (req, res, next) => {
   }
   // const updatedPlace = { ...DUMMY_PLACES.find((p) => p.id === placeId) };
   // const placeIndex = DUMMY_PLACES.findIndex((p) => p.id === placeId);
+  if (place.creator.toString() !== req.userData.userId) {
+    const err = new HttpError("Your are not allow to edit this place", 401);
+    return next(err);
+  }
   place.title = title;
   place.description = description;
 
@@ -163,6 +167,12 @@ const deletePlace = async (req, res, next) => {
     return next(err);
   }
 
+  if (place.creator.id !== req.userData.userId) {
+    const err = new HttpError("Your are not allow to delete this place", 401);
+    return next(err);
+  }
+  const imagePath = place.image;
+
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
@@ -174,6 +184,9 @@ const deletePlace = async (req, res, next) => {
     const err = new HttpError("Delete failed", 500);
     return next(err);
   }
+  fs.unlink(imagePath, (err) => {
+    console.log(err);
+  });
   // if (!DUMMY_PLACES.find((p) => p.id === placeId)) {
   //   throw new HttpError("Could not find a place for that ID", 404);
   // }
